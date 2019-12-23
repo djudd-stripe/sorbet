@@ -56,6 +56,30 @@ class Opus::Types::Test::Props::PropsTest < Critic::Unit::UnitTest
   class InheritedOverrideSubProps < OverrideSubProps
   end
 
+  class HasPropGetOverride < T::Props::Decorator
+    attr_reader :field_accesses
+
+    def prop_get(instance, prop, *)
+      @field_accesses ||= []
+      @field_accesses << prop
+      super
+    end
+  end
+
+  class UsesPropGetOverride
+    include T::Props
+
+    def self.decorator_class
+      HasPropGetOverride
+    end
+
+    prop :foo, T.nilable(String)
+  end
+
+  class AddsPropsToClassWithPropGetOverride < UsesPropGetOverride
+    include BaseProps
+  end
+
   describe 'when subclassing' do
     it 'inherits properties' do
       d = SubProps.new
@@ -80,6 +104,27 @@ class Opus::Types::Test::Props::PropsTest < Critic::Unit::UnitTest
 
     it 'allows inheriting overridden props' do
       assert(InheritedOverrideSubProps.props.include?(:prop2))
+    end
+
+    it 'allows hooking prop_get' do
+      d = UsesPropGetOverride.new
+      d.foo = 'bar'
+      d.foo
+
+      assert_equal(
+        [:foo],
+        UsesPropGetOverride.decorator.field_accesses,
+      )
+
+      d = AddsPropsToClassWithPropGetOverride.new
+      d.prop1 = 'bar'
+      d.prop1
+      assert_equal("I can't let you see that", d.shadowed)
+
+      assert_equal(
+        [:prop1],
+        AddsPropsToClassWithPropGetOverride.decorator.field_accesses,
+      )
     end
   end
 
