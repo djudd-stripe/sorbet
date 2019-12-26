@@ -18,9 +18,11 @@ module T::Props::PrettyPrintable
   module DecoratorMethods
     extend T::Sig
 
-    sig {returns(T::Array[Symbol])}
+    VALID_PROPS = %i{inspect}.to_set.freeze
+
+    sig {returns(T::Set[Symbol]).checked(:never)}
     def valid_props
-      super + [:inspect]
+      @valid_props ||= super + VALID_PROPS
     end
 
     sig do

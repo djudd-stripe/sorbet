@@ -47,9 +47,8 @@ class T::Props::Decorator
   sig {params(prop: T.any(Symbol, String)).returns(Rules).checked(:never)}
   def prop_rules(prop); props[prop.to_sym] || raise("No such prop: #{prop.inspect}"); end
 
-  sig {params(prop: Symbol, rules: Rules).void}
+  sig {params(prop: Symbol, rules: Rules).void.checked(:never)}
   def add_prop_definition(prop, rules)
-    prop = prop.to_sym
     override = rules.delete(:override)
 
     if props.include?(prop) && !override
@@ -61,23 +60,25 @@ class T::Props::Decorator
     @props = @props.merge(prop => rules.freeze).freeze
   end
 
-  sig {returns(T::Array[Symbol])}
+  VALID_PROPS = %i{
+    enum
+    foreign
+    foreign_hint_only
+    ifunset
+    immutable
+    override
+    redaction
+    sensitivity
+    without_accessors
+    clobber_existing_method!
+    extra
+    optional
+    _tnilable
+  }.to_set.freeze
+
+  sig {returns(T::Set[Symbol]).checked(:never)}
   def valid_props
-    %i{
-      enum
-      foreign
-      foreign_hint_only
-      ifunset
-      immutable
-      override
-      redaction
-      sensitivity
-      without_accessors
-      clobber_existing_method!
-      extra
-      optional
-      _tnilable
-    }
+    VALID_PROPS
   end
 
   sig {returns(DecoratedClass).checked(:never)}
@@ -245,6 +246,9 @@ class T::Props::Decorator
     foreign_class.load(value, {}, opts)
   end
 
+  # TODO: we should really be checking all the methods on `cls`, not just Object
+  BANNED_METHOD_NAMES = Object.instance_methods.to_set.freeze
+
   sig do
     params(
       name: Symbol,
@@ -253,6 +257,7 @@ class T::Props::Decorator
       type: PropTypeOrClass
     )
     .void
+    .checked(:never)
   end
   def prop_validate_definition!(name, cls, rules, type)
     validate_prop_name(name)
@@ -262,7 +267,7 @@ class T::Props::Decorator
         "to 'sensitivity:' (in prop #{@class.name}.#{name})")
     end
 
-    if !(rules.keys - valid_props).empty?
+    if rules.keys.any? {|k| !valid_props.include?(k)}
       raise ArgumentError.new("At least one invalid prop arg supplied in #{self}: #{rules.keys.inspect}")
     end
 
@@ -273,8 +278,7 @@ class T::Props::Decorator
     end
 
     if !(rules[:clobber_existing_method!]) && !(rules[:without_accessors])
-      # TODO: we should really be checking all the methods on `cls`, not just Object
-      if Object.instance_methods.include?(name.to_sym)
+      if BANNED_METHOD_NAMES.include?(name.to_sym)
         raise ArgumentError.new(
           "#{name} can't be used as a prop in #{@class} because a method with " \
           "that name already exists (defined by #{@class.instance_method(name).owner} " \
@@ -299,7 +303,7 @@ class T::Props::Decorator
   end
 
   # Check if this cls represents a T.nilable(type)
-  sig {params(type: PropTypeOrClass).returns(T::Boolean)}
+  sig {params(type: PropTypeOrClass).returns(T::Boolean).checked(:never)}
   private def is_nilable?(type)
     return false if !type.is_a?(T::Types::Union)
     type.types.any? {|t| t == T::Utils.coerce(NilClass)}
@@ -309,6 +313,8 @@ class T::Props::Decorator
   sig {params(type: T::Types::Base).returns(Module)}
   private def convert_type_to_class(type)
     case type
+    when T::Types::Simple
+      type.raw_type
     when T::Types::TypedArray, T::Types::FixedArray
       Array
     when T::Types::TypedHash, T::Types::FixedHash
@@ -324,8 +330,6 @@ class T::Props::Decorator
       else
         Object
       end
-    when T::Types::Simple
-      type.raw_type
     else
       # This isn't allowed unless whitelisted_for_underspecification is
       # true, due to the check in prop_validate_definition
@@ -340,6 +344,7 @@ class T::Props::Decorator
       rules: Rules,
     )
     .void
+    .checked(:never)
   end
   def prop_defined(name, cls, rules={})
     cls = T::Utils.resolve_alias(cls)
@@ -496,7 +501,7 @@ class T::Props::Decorator
     handle_redaction_option(name, rules[:redaction]) if rules[:redaction]
   end
 
-  sig {params(name: Symbol, rules: Rules).void}
+  sig {params(name: Symbol, rules: Rules).void.checked(:never)}
   private def define_getter_and_setter(name, rules)
     T::Configuration.without_ruby_warnings do
       if !rules[:immutable]
@@ -520,6 +525,7 @@ class T::Props::Decorator
   sig do
     params(type: PropType)
     .returns(T.nilable(Module))
+    .checked(:never)
   end
   private def array_subdoc_type(type)
     if type.is_a?(T::Types::TypedArray)
@@ -538,6 +544,7 @@ class T::Props::Decorator
   sig do
     params(type: PropType)
     .returns(T.nilable(Module))
+    .checked(:never)
   end
   private def hash_value_subdoc_type(type)
     if type.is_a?(T::Types::TypedHash)
@@ -556,6 +563,7 @@ class T::Props::Decorator
   sig do
     params(type: PropType)
     .returns(T.nilable(Module))
+    .checked(:never)
   end
   private def hash_key_custom_type(type)
     if type.is_a?(T::Types::TypedHash)
@@ -572,7 +580,7 @@ class T::Props::Decorator
   # From T::Props::Utils.deep_clone_object, plus String
   TYPES_NOT_NEEDING_CLONE = [TrueClass, FalseClass, NilClass, Symbol, String, Numeric]
 
-  sig {params(type: PropType).returns(T::Boolean)}
+  sig {params(type: PropType).returns(T::Boolean).checked(:never)}
   private def shallow_clone_ok(type)
     inner_type =
       if type.is_a?(T::Types::TypedArray)
@@ -613,7 +621,7 @@ class T::Props::Decorator
     end
   end
 
-  sig {params(prop_name: Symbol, rules: Hash).void}
+  sig {params(prop_name: Symbol, rules: Rules).void.checked(:never)}
   private def validate_not_missing_sensitivity(prop_name, rules)
     if rules[:sensitivity].nil?
       if rules[:redaction]
@@ -707,6 +715,7 @@ class T::Props::Decorator
       foreign: T.untyped,
     )
     .void
+    .checked(:never)
   end
   private def define_foreign_method(prop_name, rules, foreign)
     fk_method = "#{prop_name}_"
@@ -766,6 +775,7 @@ class T::Props::Decorator
       foreign: T.untyped,
     )
     .void
+    .checked(:never)
   end
   private def handle_foreign_option(prop_name, prop_cls, rules, foreign)
     validate_foreign_option(

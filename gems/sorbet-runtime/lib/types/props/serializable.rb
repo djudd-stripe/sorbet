@@ -274,12 +274,10 @@ end
 # NB: This must stay in the same file where T::Props::Serializable is defined due to
 # T::Props::Decorator#apply_plugin; see https://git.corp.stripe.com/stripe-internal/pay-server/blob/fc7f15593b49875f2d0499ffecfd19798bac05b3/chalk/odm/lib/chalk-odm/document_decorator.rb#L716-L717
 module T::Props::Serializable::DecoratorMethods
+  VALID_PROPS = %i{dont_store name raise_on_nil_write}.to_set.freeze
+
   def valid_props
-    super + [
-      :dont_store,
-      :name,
-      :raise_on_nil_write,
-    ]
+    @valid_props ||= super + VALID_PROPS
   end
 
   def required_props

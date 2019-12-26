@@ -11,9 +11,11 @@ module T::Props::TypeValidation
   module DecoratorMethods
     extend T::Sig
 
-    sig {returns(T::Array[Symbol])}
+    VALID_PROPS = [:DEPRECATED_underspecified_type].to_set.freeze
+
+    sig {returns(T::Set[Symbol]).checked(:never)}
     def valid_props
-      super + [:DEPRECATED_underspecified_type]
+      @valid_props ||= super + VALID_PROPS
     end
 
     sig do
