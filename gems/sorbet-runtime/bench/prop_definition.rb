@@ -14,10 +14,11 @@ module SorbetBenchmarks
 
     def self.run
       result = Benchmark.measure do
-        1_000.times do
-          Class.new(T::Struct) do
+        1_000.times do |i|
+          cls = Class.new(T::Struct) do
             prop :prop, String
           end
+          cls.decorator.eagerly_define_lazy_methods!
         end
       end
 
@@ -26,7 +27,7 @@ module SorbetBenchmarks
 
       result = Benchmark.measure do
         1_000.times do
-          Class.new(T::Struct) do
+          cls = Class.new(T::Struct) do
             prop :prop1, T.nilable(Integer)
             prop :prop2, Integer, default: 0
             prop :prop3, Integer
@@ -38,6 +39,7 @@ module SorbetBenchmarks
             prop :prop9, T::Array[Subdoc], default: []
             prop :prop10, T::Hash[String, Subdoc], default: {}
           end
+          cls.decorator.eagerly_define_lazy_methods!
         end
       end
 

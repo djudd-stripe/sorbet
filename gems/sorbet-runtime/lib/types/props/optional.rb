@@ -72,16 +72,24 @@ module T::Props::Optional::DecoratorMethods
 
   def get_default(rules, instance_class)
     if rules.include?(:default)
-      default = rules[:default]
-      T::Props::Utils.deep_clone_object(default)
+      get_fixed_default(rules, instance_class)
     elsif rules.include?(:factory)
       # Factory should never be nil if the key is specified, but
       # we do this rather than 'elsif rules[:factory]' for
       # consistency with :default.
-      factory = rules[:factory]
-      instance_class.class_exec(&factory)
+      get_factory_default(rules, instance_class)
     else
       nil
     end
+  end
+
+  def get_fixed_default(rules, instance_class)
+    default = rules.fetch(:default)
+    T::Props::Utils.deep_clone_object(default)
+  end
+
+  def get_factory_default(rules, instance_class)
+    factory = rules.fetch(:factory)
+    instance_class.class_exec(&factory)
   end
 end

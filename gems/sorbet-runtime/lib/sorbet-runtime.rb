@@ -93,10 +93,13 @@ require_relative 'types/props/errors'
 require_relative 'types/props/plugin'
 require_relative 'types/props/utils'
 # Props that run sigs statically so have to be after all the others :(
+require_relative 'types/props/private/ruby_gen'
+require_relative 'types/props/has_lazily_specialized_methods'
 require_relative 'types/props/optional'
 require_relative 'types/props/weak_constructor'
 require_relative 'types/props/constructor'
 require_relative 'types/props/pretty_printable'
+require_relative 'types/props/private/deserializer_generator'
 require_relative 'types/props/serializable'
 require_relative 'types/props/type_validation'
 
