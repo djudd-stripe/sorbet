@@ -17,7 +17,6 @@ module SorbetBenchmarks
         cls = Class.new(T::Struct) do
           prop :prop, String
         end
-        cls.decorator.eagerly_define_lazy_methods!
       end
 
       result = Benchmark.measure do
@@ -25,7 +24,6 @@ module SorbetBenchmarks
           cls = Class.new(T::Struct) do
             prop :prop, String
           end
-          cls.decorator.eagerly_define_lazy_methods!
         end
       end
 
@@ -45,7 +43,6 @@ module SorbetBenchmarks
           prop :prop9, T::Array[Subdoc], default: []
           prop :prop10, T::Hash[String, Subdoc], default: {}
         end
-        cls.decorator.eagerly_define_lazy_methods!
       end
 
       result = Benchmark.measure do
@@ -62,7 +59,6 @@ module SorbetBenchmarks
             prop :prop9, T::Array[Subdoc], default: []
             prop :prop10, T::Hash[String, Subdoc], default: {}
           end
-          cls.decorator.eagerly_define_lazy_methods!
         end
       end
 
